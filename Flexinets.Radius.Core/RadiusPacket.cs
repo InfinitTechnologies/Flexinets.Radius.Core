@@ -237,29 +237,45 @@ namespace Flexinets.Radius.Core
             switch (type)
             {
                 case "string":
-                    return Encoding.UTF8.GetString(contentBytes);
-
+				case "String":
                 case "tagged-string":
                     return Encoding.UTF8.GetString(contentBytes);
-
                 case "octet":
+				case "octets":
                     // If this is a password attribute it must be decrypted
                     if (code == 2)
                     {
                         return RadiusPassword.Decrypt(sharedSecret, authenticator, contentBytes);
                     }
-                    return contentBytes;
 
-                case "integer":
-                    return BitConverter.ToUInt32(contentBytes.Reverse().ToArray(), 0);
-
+					return contentBytes;
+				case "ipaddr":
+				case "ipv6addr":
+					return new IPAddress(contentBytes);
+				case "date":
+					return DateTimeOffset.FromUnixTimeSeconds(BitConverter.ToUInt32(contentBytes.Reverse().ToArray(), 0));
+				case "short":
+					return BitConverter.ToUInt16(contentBytes.Reverse().ToArray(), 0);
+				case "integer":
+				case "signed":
                 case "tagged-integer":
                     return BitConverter.ToUInt32(contentBytes.Reverse().ToArray(), 0);
-
-                case "ipaddr":
-                    return new IPAddress(contentBytes);
-
-                default:
+				case "integer64":
+					return BitConverter.ToUInt64(contentBytes.Reverse().ToArray(), 0);
+				case "abinary": // Ascend binary filter format.
+				case "byte": // 8-bit unsigned integer.
+				case "bytes":
+				case "combo-ip":
+				case "ether": // Ethernet MAC address.
+				case "extended":
+				case "ifid": // Interface Id (hex:hex:hex).
+				case "ipv4prefix": // IPv4 Prefix as given in RFC 6572.
+				case "ipv6prefix": // IPv6 prefix, with mask. 2001:db8:a000:ff::/64
+				case "long-extended":
+				case "struct": // Fixed size structures.
+				case "tlv": // Type-Length-Value (allows nested attributes).
+				default:
+					_log.Warn($"No content parser for type '{type}'.");
                     return null;
             }
         }
